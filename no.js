@@ -1,5 +1,5 @@
 
-// js--[action]--[property]--when="evtType target propertyValue"
+// on--[evtType]--[action]--[propertyType] = "target propertyName propertyValue"
 // TODO: js--[action]--[property]--self--when
 (function() {
   function NoJS (dom) {
@@ -13,30 +13,43 @@
       Object.keys(el.attributes).forEach(function(prop){
         var attr = el.attributes[prop]
 
-        if (attr.name.startsWith('js--')) {
-          parts = attr.name.split('--');
-          otherParts = attr.value.split(' ');
+        if (attr.name.indexOf('on--') === 0) {
+          var parts = attr.name.split('--');
+          var otherParts = attr.value.split(' ');
 
-          var action = parts[1], propertyName = parts[2];
-          var eventType = otherParts[0], target = otherParts[1];
-          var propertyValue = otherParts.length > 2 ? otherParts[2] : undefined;
+          var eventType = parts[1], action = parts[2], propertyType = parts[3];
+          var target = otherParts[0];
+
           el.addEventListener(eventType, function(e){
-            this_._handler(action, propertyName, target, propertyValue);
+            this_._handler(action, target, propertyType, otherParts.slice(1));
           })
         }
       })
     })
   }
 
-  NoJS.prototype._handler = function (action, propertyName, target, propertyValue) {
-    var ACTIONS = ['remove', 'add'];
+  // propertyType can be attribute, class, id, dom
+  // action can be add or remove
+  NoJS.prototype._handler = function (action, target, propertyType, optionalArgs) {
     document.querySelectorAll(target).forEach(function(el){
-      if (propertyName === 'class') {
-        el.classList[action](propertyValue)
-      } else if (action === 'remove') {
-        el.removeAttribute(propertyName)
-      } else if (action === 'add') {
-        el.setAttribute(propertyName, propertyValue);
+      if (propertyType === 'class') {
+        el.classList[action](optionalArgs[0])
+      }
+
+      else if (propertyType === 'attribute' || propertyType === 'id') {
+        var propertyName = propertyType === 'id' ? 'id' : agrs[0];
+
+        if (action === 'remove') {
+          el.removeAttribute(propertyName)
+        } else if (action === 'add') {
+          var propertyValue = propertyType === 'id' ? optionalArgs[0] : agrs[1];
+          el.setAttribute(propertyName, propertyValue);
+        }
+
+      }
+
+      else if (propertyType === 'dom' && action === 'remove') {
+        el.remove()
       }
     })
   }
