@@ -46,12 +46,12 @@
       }
 
       else if (propertyType === 'attribute' || propertyType === 'id') {
-        var propertyName = propertyType === 'id' ? 'id' : agrs[0];
+        var propertyName = propertyType === 'id' ? 'id' : optionalArgs[0];
 
         if (action === 'remove') {
           el.removeAttribute(propertyName)
         } else if (action === 'add') {
-          var propertyValue = propertyType === 'id' ? optionalArgs[0] : agrs[1];
+          var propertyValue = propertyType === 'id' ? optionalArgs[0] : optionalArgs[1];
           el.setAttribute(propertyName, propertyValue);
         }
       }
