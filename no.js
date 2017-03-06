@@ -62,5 +62,7 @@
     })
   }
 
-  window.no = new NoJS();
+  document.addEventListener('DOMContentLoaded', function(){
+    window.no = new NoJS();
+  })
 })()
