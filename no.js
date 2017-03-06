@@ -1,6 +1,6 @@
 
 // on--[evtType]--[action]--[propertyType] = "target propertyName propertyValue"
-// TODO: js--[action]--[property]--self--when
+// TODO: add or remove text, actions should include 'set' and 'toggle' for class.
 (function() {
   function NoJS (dom) {
     this.js(dom)
