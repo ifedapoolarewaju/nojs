@@ -7,7 +7,7 @@
   }
 
   NoJS.prototype.js = function (dom) {
-    dom = dom || 'body';
+    dom = dom || 'html';
     var this_ = this;
     document.querySelector(dom).querySelectorAll('[no-js]').forEach(function(el) {
       Object.keys(el.attributes).forEach(function(prop){
