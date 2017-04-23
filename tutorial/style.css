@@ -1,0 +1,66 @@
+body {
+  font-family: sans-serif;
+}
+
+a {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+header {
+  height: 50px;
+  border-bottom: 1px #eee solid;
+  margin-bottom: 10px;
+}
+
+header a {
+  display: inline-block;
+  height: 100%;
+  padding: 10px;
+}
+
+.content {
+  padding: 5%;
+}
+
+.tab-header {
+  display: inline-block;
+  padding: 20px;
+  border: 1px #e0e0e0 solid;
+  border-radius: 5px;
+  border-bottom: none;
+  cursor: pointer;
+}
+
+.tab-header:hover, .tab-header.active {
+  background: #eee;
+}
+
+.tab-content {
+  border: 1px #e0e0e0 solid;
+  padding: 20px;
+  width: 50%;
+  height: 100px;
+}
+
+input[type=text] {
+  margin-top: 20px;
+  padding: 10px;
+  min-width: 200px;
+}
+
+.sidemenu {
+  position: absolute;
+  // minus height of header;
+  height: calc(100% - 56px);
+  top: 56px;
+  left: -360px;
+  width: 300px;
+  background: #eee;
+  padding: 0 30px;
+  transition: all ease 0.3s;
+}
+
+.sidemenu.active {
+  transform: translateX(360px);
+}

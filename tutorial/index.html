@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+  <header>
+    <a no-js on-click-toggle-class=".sidemenu active">
+      <img src="menu.png" width="30px">
+    </a>
+    <a href="">Drop down</a>
+  </header>
+  
+  <div class="content">
+    <div class="tabs">
+      <div class="tab-header" no-js on-click-switch-class=".tab-header active" on-click-set-text=".tab-content some content">Tab 1</div>
+      <div class="tab-header" no-js on-click-switch-class=".tab-header active" on-click-set-text=".tab-content some other content">Tab 2</div>
+      <div class="tab-header" no-js on-click-switch-class=".tab-header active" on-click-set-text=".tab-content yet another content">Tab 3</div>
+      <div class="tab-header" no-js on-click-switch-class=".tab-header active" on-click-set-text=".tab-content and the last content">Tab 4</div>
+
+      <div class="tab-content"></div>
+    </div>
+    <br>
+    <br>
+    <br>
+    <form>
+      <div>
+        <p>Select country</p>
+        <input type="radio" name="country" value="NG" no-js on-click-set-value="[name=number] +234"> Nigeria
+        <input type="radio" name="country" value="GH" no-js on-click-set-value="[name=number] +233"> Ghana
+      </div>
+      <br>
+      <br>
+      <div>
+        Phone Number
+        <br>
+        <input type="text" name="number" placeholder="Phone number">
+      </div>
+    </form>
+  </div>
+
+  <div class="sidemenu">
+    <div class="content">
+      <p>Blank content ...</p>
+    </div>
+  </div>
+</body>
+<script type="text/javascript" src="../no.js"></script>
+</html>
