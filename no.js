@@ -64,8 +64,7 @@
 
         var propertyValue;
         if (action !== 'remove' || action !== 'reset') {
-          var index = this_._getPropertyValueIndex(propertyType)
-          index = isSelf ? index - 1 : index;
+          var index = this_._getPropertyValueIndex(propertyType, isSelf)
           // join space containing values that might have been split.
           propertyValue = paramValues.splice(index).join(' ')
         }
@@ -126,8 +125,9 @@
     })
   }
 
-  NoJS.prototype._getPropertyValueIndex = function (propertyType) {
-    return propertyType === 'attribute' ? 2 : 1;
+  NoJS.prototype._getPropertyValueIndex = function (propertyType, isSelf) {
+    var index = propertyType === 'attribute' ? 2 : 1;
+    return isSelf ? index - 1 : index;
   }
 
   document.addEventListener('DOMContentLoaded', function() {
