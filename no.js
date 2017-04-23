@@ -10,6 +10,7 @@
 *     on-[eventType]-remove-attribute="[target] [attributeName]"
 *   class:
 *     on-[eventType]-add-class="[target] [className]"
+*     on-[eventType]-set-class="[target] [className]"
 *     on-[eventType]-remove-class="[target] [className]"
 *     on-[eventType]-toggle-class="[target] [className]"
 *     on-[eventType]-switch-class="[target] [className]"
@@ -33,6 +34,7 @@
   NoJS.prototype.js = function (dom) {
     dom = dom || 'html';
     var this_ = this;
+    var isSelf = false;
     document.querySelector(dom).querySelectorAll('[no-js]').forEach(function(el) {
       Object.keys(el.attributes).forEach(function(prop) {
         var attr = el.attributes[prop];
@@ -55,6 +57,7 @@
 
         if (signatureParts.length === 5 && signatureParts[4] === 'self') {
           var target = el;
+          isSelf = true;
         } else {
           var target = paramValues[0];
         }
@@ -62,6 +65,7 @@
         var propertyValue;
         if (action !== 'remove' || action !== 'reset') {
           var index = this_._getPropertyValueIndex(propertyType)
+          index = isSelf ? index - 1 : index;
           // join space containing values that might have been split.
           propertyValue = paramValues.splice(index).join(' ')
         }
@@ -84,7 +88,6 @@
 
   NoJS.prototype._handler = function (options) {
     var targets = typeof options.target === "string" ? document.querySelectorAll(options.target) : [options.target];
-
     targets.forEach(function(el) {
       if (options.propertyType === 'class') {
         if (options.action === 'set') {
