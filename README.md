@@ -23,7 +23,7 @@ Then link it to the bottom of your web page like so:
 
 ### USAGE
 
-Please view the [Documentation](http://ifedapoolarewaju.github.io/nojs-site/)
+Please view the [Documentation](https://ifedapoolarewaju.github.io/nojs-site/)
 for elaborate examples and usage.
 
 ## License
