@@ -1,6 +1,6 @@
 {
   "name": "nojs",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "description": "Library that helps minimize js you have to write",
   "main": "no.js",
   "scripts": {
@@ -10,6 +10,11 @@
     "type": "git",
     "url": "git+https://github.com/ifedapoolarewaju/nojs.git"
   },
+  "keywords": [
+    "frontend-web",
+    "dom-manipulation",
+    "no-js"
+  ],
   "author": "Ifedapo .A. Olarewaju",
   "license": "MIT",
   "bugs": {
