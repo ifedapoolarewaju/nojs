@@ -12,9 +12,13 @@
   },
   "keywords": [
     "frontend-web",
+    "frontend",
+    "dom",
     "dom-manipulation",
     "no-js",
-    "nojs"
+    "nojs",
+    "no.js",
+    "no-javascript"
   ],
   "author": "Ifedapo .A. Olarewaju",
   "license": "MIT",
