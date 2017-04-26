@@ -1,3 +1,7 @@
+### 0.1.1 / 2017-04-26 ###
+
+* Mangle variables in dist file for lighter file size.
+
 ### 0.1.0 / 2017-04-23 ###
 
 * Single dash support
