@@ -4,6 +4,9 @@
 *   on-[evtType]-[action]-[propertyType] = "target propertyValue"
 *   on-[evtType]-[action]-[propertyType]-self = "propertyName propertyValue"
 *
+* Supported actions:
+*   add, remove, set, toggle, switch, reset, trigger
+*
 * Supported propertyTypes:
 *   attribute:
 *     on-[eventType]-add||set-attribute="[target] [attributeName] [attributeValue]"
@@ -24,11 +27,16 @@
 *     on-[eventType]-reset-value="[form input target]"
 *   text:
 *     on-[eventType]-set-text="[target] [textValue]"
+*   click,blur,focus,scrollIntoView:
+*     on-[eventType]-trigger-click="[target]"
+*     on-[eventType]-trigger-focus="[target]"
+*     on-[eventType]-trigger-blur="[target]"
+*     on-[eventType]-trigger-scrollIntoView="[target]"
 *
 */
 (function() {
   function NoJS (dom) {
-    this.js(dom)
+    this.js(dom);
   }
 
   NoJS.prototype.js = function (dom) {
@@ -53,9 +61,9 @@
         var signatureParts = attr.name.split(doubleDash ? '--' : '-');
         var paramValues = attr.value.split(' ');
 
-        var eventType = signatureParts[1], action = signatureParts[2], propertyType = signatureParts[3];
+        var eventType = signatureParts[1], action = signatureParts[2], propertyOrEventType = signatureParts[3];
 
-        if (signatureParts.length === 5 && signatureParts[4] === 'self') {
+        if (signatureParts.length > 3 && signatureParts[signatureParts.length -1] === 'self') {
           var target = el;
           isSelf = true;
         } else {
@@ -64,7 +72,7 @@
 
         var propertyValue;
         if (action !== 'remove' || action !== 'reset') {
-          var index = this_._getPropertyValueIndex(propertyType, isSelf)
+          var index = this_._getPropertyValueIndex(propertyOrEventType, isSelf)
           // join space containing values that might have been split.
           propertyValue = paramValues.splice(index).join(' ')
         }
@@ -73,9 +81,9 @@
           action: action,
           target: target,
           sourceElement: el,
-          propertyType: propertyType,
+          propertyOrEventType: propertyOrEventType,
           propertyValue: propertyValue,
-          propertyName: propertyType === 'attribute' ? paramValues[1] : propertyType
+          propertyName: propertyOrEventType === 'attribute' ? paramValues[1] : propertyOrEventType
         }
 
         el.addEventListener(eventType, function(e) {
@@ -88,30 +96,37 @@
   NoJS.prototype._handler = function (options) {
     var targets = typeof options.target === "string" ? document.querySelectorAll(options.target) : [options.target];
     targets.forEach(function(el) {
-      if (options.propertyType === 'class') {
+      if (options.action === 'trigger' && typeof el[options.propertyOrEventType] === 'function') {
+        el[options.propertyOrEventType]();
+        return;
+      }
+
+      if (options.propertyOrEventType === 'class') {
         if (options.action === 'set') {
-          el.className = options.propertyValue
+          el.className = options.propertyValue;
         } else if (options.action == 'switch') {
-          el.classList.remove(options.propertyValue)
-          options.sourceElement.classList.add(options.propertyValue)
+          // @todo add and remove based on the class presence
+          // during time of action
+          el.classList.remove(options.propertyValue);
+          options.sourceElement.classList.add(options.propertyValue);
         } else {
-          el.classList[options.action](options.propertyValue)
+          el.classList[options.action](options.propertyValue);
         }
       }
 
-      else if (options.propertyType === 'attribute' || options.propertyType === 'id') {
+      else if (options.propertyOrEventType === 'attribute' || options.propertyOrEventType === 'id') {
         if (options.action === 'remove') {
-          el.removeAttribute(options.propertyName)
+          el.removeAttribute(options.propertyName);
         } else if (options.action === 'add' || options.action == 'set') {
           el.setAttribute(options.propertyName, options.propertyValue);
         }
       }
 
-      else if (options.propertyType === 'dom' && options.action === 'remove') {
+      else if (options.propertyOrEventType === 'dom' && options.action === 'remove') {
         el.remove();
       }
 
-      else if (options.propertyType === 'value') {
+      else if (options.propertyOrEventType === 'value') {
         if (options.action === 'set') {
           el.value = options.propertyValue;
         } else if (options.action === 'reset') {
@@ -119,14 +134,14 @@
         }
       }
 
-      else if (options.propertyType === 'text' && options.action === 'set') {
+      else if (options.propertyOrEventType === 'text' && options.action === 'set') {
         el.innerText = options.propertyValue;
       }
     })
   }
 
-  NoJS.prototype._getPropertyValueIndex = function (propertyType, isSelf) {
-    var index = propertyType === 'attribute' ? 2 : 1;
+  NoJS.prototype._getPropertyValueIndex = function (propertyOrEventType, isSelf) {
+    var index = propertyOrEventType === 'attribute' ? 2 : 1;
     return isSelf ? index - 1 : index;
   }
 

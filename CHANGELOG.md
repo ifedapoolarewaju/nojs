@@ -1,3 +1,11 @@
+### 0.1.2 / 2019-02-07 ###
+
+* Add support for triggers
+  - on-[eventType]-trigger-click="[target]"
+  - on-[eventType]-trigger-focus="[target]"
+  - on-[eventType]-trigger-blur="[target]"
+  - on-[eventType]-trigger-scrollIntoView="[target]"
+
 ### 0.1.1 / 2017-04-26 ###
 
 * Mangle variables in dist file for lighter file size.
