@@ -67,14 +67,19 @@
           var target = el;
           isSelf = true;
         } else {
+          isSelf = false;
           var target = paramValues[0];
         }
 
+        var propertyName = propertyOrEventType;
         var propertyValue;
-        if (action !== 'remove' || action !== 'reset') {
-          var index = this_._getPropertyValueIndex(propertyOrEventType, isSelf)
+        if (action !== 'reset') {
+          var index = this_._getPropertyValueIndex(propertyOrEventType, isSelf);
           // join space containing values that might have been split.
-          propertyValue = paramValues.splice(index).join(' ')
+          propertyValue = paramValues.slice(index).join(' ');
+          if (propertyOrEventType === 'attribute') {
+            propertyName = paramValues[index - 1];
+          }
         }
 
         var options = {
@@ -83,7 +88,7 @@
           sourceElement: el,
           propertyOrEventType: propertyOrEventType,
           propertyValue: propertyValue,
-          propertyName: propertyOrEventType === 'attribute' ? paramValues[1] : propertyOrEventType
+          propertyName: propertyName
         }
 
         el.addEventListener(eventType, function(e) {
@@ -141,6 +146,8 @@
   }
 
   NoJS.prototype._getPropertyValueIndex = function (propertyOrEventType, isSelf) {
+    // if props type is attribute, the signature takes the form
+    // on-[evtType]-[action]-attribute = "target propertyName propertyValue"
     var index = propertyOrEventType === 'attribute' ? 2 : 1;
     return isSelf ? index - 1 : index;
   }

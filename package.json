@@ -1,6 +1,6 @@
 {
   "name": "nojs",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Library that helps minimize js you have to write",
   "main": "no.js",
   "scripts": {

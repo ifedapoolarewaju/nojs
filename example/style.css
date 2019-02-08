@@ -51,7 +51,7 @@ input[type=text] {
 
 .sidemenu {
   position: absolute;
-  // minus height of header;
+  /* minus height of header; */
   height: calc(100% - 56px);
   top: 56px;
   left: -360px;

@@ -1,3 +1,8 @@
+### 0.1.3 / 2019-02-07 ###
+
+* update `self` check (truth and false) on every loop iteration
+* fix property value and property name detection
+
 ### 0.1.2 / 2019-02-07 ###
 
 * Add support for triggers
