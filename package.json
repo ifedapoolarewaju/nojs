@@ -4,7 +4,7 @@
   "description": "Library that helps minimize js you have to write",
   "main": "no.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jasmine test/*.test.js",
     "uglify": "uglifyjs --compress --mangle -o dist/no.min.js -- no.js"
   },
   "repository": {
@@ -29,5 +29,8 @@
   "homepage": "https://github.com/ifedapoolarewaju/nojs#readme",
   "devDependencies": {
     "uglify-js": "^2.7.5"
+  },
+  "dependencies": {
+    "jasmine": "^3.4.0"
   }
 }
