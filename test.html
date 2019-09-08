@@ -3,6 +3,10 @@
 <html>
     <head>
         <meta charset="UTF-8" />
+        <meta no-js="template1 2" on-click-toggle-class-self="$0"
+            on-click-timeout-toggle-class="500 6 $1 redbg" />
+        <meta no-js="template2 2" toggle-class-self="redbg"
+            toggle-class="$0 $1" />
         <script type="text/javascript" src="no.js"></script>
 
         <style>
@@ -96,5 +100,24 @@
         <button no-js on-click-trigger-scrollIntoView="#target1">
             scroll to the first target
         </button>
+        <h1>timeout</h1>
+        <span no-js on-immediately-timeout-toggle-class-self="500 -1 redbg">
+            using immediately timeout with negative count to flash forever
+        </span>
+        <button no-js on-click-timeout-toggle-class="500 6 #target10 redbg">
+            using click timeout to flash a few times
+        </button>
+        <span id="target10">flash me a few times</span>
+        <h1>templates</h1>
+        <button no-js="template1 greenborder #target11">
+            give the no-js attribute a template and parameters
+        </button>
+        <span id="target11">and it will copy actions from a template</span>
+        <button no-js on-click-apply-template="template2 #target12 greenborder">
+            use the apply template action
+        </button>
+        <span id=target12>
+            and actions will be triggered with the template is triggered.
+        </span>
     </body>
 </html>

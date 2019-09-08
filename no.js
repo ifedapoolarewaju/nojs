@@ -39,12 +39,14 @@
 (function() {
   function NoJS (dom) {
     this.targetTypes = {};
+    this.templates = {};
   }
 
   /**
    * Can handle spaces, single quotation,  and escaped "\', \\, \ " chars.
    */
   NoJS.prototype.splitParams = function(param) {
+    if(param == null) { return null; }
     var ret = [];
     var str = "";
     var inQuote = false;
@@ -172,6 +174,9 @@
             apply(evnt);
             setTimeout(listener, trig.timeout.time);
           }
+          else {
+            countDown = trig.timeout.count;
+          }
         };
       } else {
         listener = function(evnt) {
@@ -181,9 +186,48 @@
 
       if(trig.eventType === "immediately") {
         // apply it after all the listeners are installed.
-        setTimeout(function() { apply(null) }, 0);
+        setTimeout(function() { listener(null) });
       } else {
         elt.addEventListener(trig.eventType, listener);
+      }
+    }
+  };
+
+  NoJS.prototype.templateArgs = function(vals, args) {
+    for(var j = 0; j < vals.length; j++) {
+      for(var k = 0; k < args.length; k++) {
+        var re = new RegExp("\\$" + k, "g");
+        vals[j] = vals[j].replace(re, args[k]);
+      }
+    }
+  }
+
+  NoJS.prototype.processTemplate = function(elt, argStr) {
+    var args = this.splitParams(argStr);
+    if(args === "invalid") {
+      console.warn("invalid no-js template no-js=\"" + argStr + "\"");
+    }
+
+    var template = this.templates[args.shift()];
+
+    if(template == null || template.argc !== args.length) {
+      console.warn("invalid no-js template no-js=\"" + argStr + "\"");
+    }
+
+    for(var i = 0; i < template.copyActions.length; i++) {
+      var keys = template.copyActions[i].keyStr.split("-");
+      keys.shift();
+      var vals = this.splitParams(template.copyActions[i].valStr);
+
+      this.templateArgs(vals, args);
+
+      var trigger = this.processTrigger(keys, vals);
+      var action = this.processAction(keys, vals, elt);
+
+      if(action.invalid || trigger.invalid) {
+        console.warn("invalid no-js template no-js=\"" + argStr + "\"");
+      } else {
+        this.processListener(trigger, action, elt);
       }
     }
   };
@@ -197,7 +241,11 @@
       // to enable support for single and double dashes.
       // note the order of condition checking is important.
       var doubleDash = false;
-      if (attr.name.indexOf('on--') === 0) {
+      if(attr.name === "no-js" && attr.value != null && attr.value !== "") {
+        this_.processTemplate(elt, attr.value);
+        return;
+      }
+      else if (attr.name.indexOf('on--') === 0) {
         doubleDash = true;
         console.warn('Deprecation warning: using double dashes "--" are deprecated. Use a single dash "-" instead.')
       } else if (attr.name.indexOf('on-') !== 0) {
@@ -226,12 +274,52 @@
     });
   };
 
+  NoJS.prototype.processMeta = function(meta) {
+    var template = {};
+    template.copyActions = [];
+    template.applyActions = [];
+    var noJsStr = null;
+
+    Object.keys(meta.attributes).forEach(function(prop) {
+      var attr = meta.attributes[prop];
+
+      if(attr.name == "no-js") { noJsStr = attr.value; }
+      else if(attr.name.indexOf("on-") === 0) {
+        var copy = {};
+        copy.keyStr = attr.name;
+        copy.valStr = attr.value;
+        template.copyActions.push(copy);
+      } else {
+        var apply = {};
+        apply.keyStr = attr.name;
+        apply.valStr = attr.value;
+        template.applyActions.push(apply);
+      }
+    });
+
+    var noJsArgs = this.splitParams(noJsStr);
+    if(noJsArgs != null && noJsArgs.length === 2) {
+      template.argc = parseInt(noJsArgs[1]);
+    }
+
+    if(template.argc == null || isNaN(template.argc)
+      || this.templates[noJsArgs[0]] != null) {
+      console.warn("invalid no-js meta template");
+      console.warn(meta);
+    } else {
+      this.templates[noJsArgs[0]] = template;
+    }
+  };
+
   NoJS.prototype.js = function (dom) {
     var this_ = this;
     dom = dom || 'html';
-    document.querySelector(dom).querySelectorAll('[no-js]')
-      .forEach(function(el) {
-      this_.processElement(el);
+    document.querySelector(dom).querySelectorAll('[no-js]').forEach(function(el) {
+      if(el.tagName.toLowerCase() === "meta") {
+        this_.processMeta(el);
+      } else {
+        this_.processElement(el);
+      }
     });
   };
 
@@ -256,7 +344,7 @@
     } else {
       target.setAttribute(action.attributeName, action.attributeValue);
     }
-  }
+  };
 
   no.targetTypes["class"] = {};
   no.targetTypes["class"].process = function(action, values) {
@@ -265,7 +353,7 @@
       || action.actionType === "switch") {
       action.classNames = values;
     } else { action.invalid = true; }
-  }
+  };
   no.targetTypes["class"].apply = function(evnt, action, target) {
     if(action.actionType === "set") {
       target.className = action.classNames.join(" ");
@@ -281,26 +369,26 @@
         target.classList[action.actionType](name);
       });
     }
-  }
+  };
 
   no.targetTypes.id = {};
   no.targetTypes.id.process = function(action, values) {
     action.targetType = "attribute";
     values.unshift("id");
     no.targetTypes.attribute.process(action, values);
-  }
+  };
 
   no.targetTypes.dom = {};
   no.targetTypes.dom.process = function(action, values) {
     if(action.actionType !== "remove" && values.length != 0) {
       action.invalid;
     }
-  }
+  };
   no.targetTypes.dom.apply = function(evnt, action, target) {
     if(action.actionType === "remove") {
       target.remove();
     }
-  }
+  };
 
   no.targetTypes.value = {};
   no.targetTypes.value.process = function(action, values) {
@@ -309,14 +397,14 @@
     } else if(action.actionType !== "reset" || values.length !== 0) {
       action.invalid = true;
     }
-  }
+  };
   no.targetTypes.value.apply = function(evnt, action, target) {
     if(action.actionType === "set") {
       target.value = action.value;
     } else if(action.actionType === "reset") {
       target.value = null;
     }
-  }
+  };
 
   no.targetTypes.text = {};
   no.targetTypes.text.process = function(action, values) {
@@ -325,12 +413,12 @@
     } else {
       action.invalid = true;
     }
-  }
+  };
   no.targetTypes.text.apply = function(evnt, action, target) {
     if(action.actionType === "set") {
       target.innerText = action.text;
     }
-  }
+  };
 
   function addTrigger(type) {
     var ltype = type.toLowerCase();
@@ -349,6 +437,34 @@
   addTrigger("focus");
   addTrigger("blur");
   addTrigger("scrollIntoView");
+
+  no.targetTypes.template = {};
+  no.targetTypes.template.process = function(action, values) {
+    if(action.actionType === "apply") {
+      action.template = action.target;
+      action.target = action.sourceElement;
+      action.isSelf = true;
+      action.args = values;
+    }
+  };
+  no.targetTypes.template.apply = function(evnt, action, target) {
+    var template = no.templates[action.template];
+
+    for(var i = 0; i < template.applyActions.length; i++) {
+      var keys = template.applyActions[i].keyStr.split("-");
+      var vals = no.splitParams(template.applyActions[i].valStr);
+
+      no.templateArgs(vals, action.args);
+      var newAct = no.processAction(keys, vals, target);
+      if(newAct.isSelf) {
+        no.targetTypes[newAct.targetType].apply(evnt, newAct, target);
+      } else {
+        document.querySelectorAll(newAct.target).forEach(function(newTarget) {
+        no.targetTypes[newAct.targetType].apply(evnt, newAct, newTarget);
+      });
+      }
+    }
+  };
 
   document.addEventListener('DOMContentLoaded', function() {
     no.js();
