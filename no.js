@@ -36,6 +36,8 @@
 *     on-[eventType]-trigger-scrollIntoView="[target]"
 *
 */
+"use strict";
+
 (function() {
   function NoJS (dom) {
     this.js(dom);
@@ -44,16 +46,16 @@
   /**
    * Can handle spaces, single quotation,  and escaped "\', \\, \ " chars.
    */
-  NoJS.prototype._splitParams = function(param) {
-    var ret = [];
-    var str = "";
-    var inQuote = false;
-    var prevSpace = false;
-    var prevQuote = false;
-    var prevEsc = false;
-    var first = true;
-    for(var i = 0; i < param.length; i++) {
-      var chr = param.charAt(i);
+  NoJS.prototype.splitParams = function(param) {
+    let ret = [];
+    let str = "";
+    let inQuote = false;
+    let prevSpace = false;
+    let prevQuote = false;
+    let prevEsc = false;
+    let first = true;
+    for(let i = 0; i < param.length; i++) {
+      let chr = param.charAt(i);
       if((first || prevSpace || !inQuote) && !prevEsc && chr === '\'') {
         if(!first && !prevSpace) {
           console.warn("possibly malformed parameter string: \"" + param + "\"");
@@ -109,132 +111,155 @@
     } // else last param was inserted by close quote, or it has trailing space.
 
     return ret;
-  }
+  };
 
-  NoJS.prototype._processRegular = function(elt) {
-    var this_ = this;
-    Object.keys(elt.attributes).forEach(function(prop) {
-      var attr = elt.attributes[prop];
-      var isSelf = false;
+  NoJS.prototype.processTrigger = function(keys, vals) {
+    let trigger = {};
+    trigger.eventType = keys.shift();
+    if(keys[0] === "timeout") {
+      keys.shift();
+      trigger.timeout = {};
+      trigger.timeout.time = parseInt(vals.shift());
+      trigger.timeout.count = parseInt(vals.shift());
+    } else { trigger.timeout = null; }
+    return trigger;
+  };
+
+  NoJS.prototype.processAction = function(keys, vals, elt) {
+    let action = {};
+    action.invalid = false;
+    action.actionType = keys.shift();
+    let property = keys.shift();
+    if((action.actionType === "add" && (property === "class"
+        || property === "attribute" || property === "id"))
+      || (action.actionType === "set" && (property === "attribute"
+        || property === "class" || property === "id"
+        || property === "value" || property === "text"))
+      || (action.actionType === "remove" && ( property === "attribute"
+        || property === "class" || property === "id"
+        || property === "dom"))
+      || (action.actionType === "reset" && property === "value")
+      || ((action.actionType === "toggle" || action.actionType === "switch")
+        && property === "class"))
+    {
+      action.propertyType = property;
+    } else { action.propertyType = property; action.invalid = true; }
+
+    action.isSelf = keys[keys.length - 1] === "self";
+
+    if(action.isSelf) {
+      action.target = elt;
+    } else {
+      action.target = vals.shift();
+    }
+
+    hasMore = lst => { if(!lst.length > 0) { action.invalid = true; } };
+
+    if(action.propertyType === "class") {
+      hasMore(vals);
+      action.className = vals.shift();
+    } else if(action.propertyType === "id") {
+      action.propertyType = "attribute";
+      action.attributeName = "id";
+      if(action.actionType !== "remove") {
+        hasMore(vals);
+        action.attributeValue = vals.shift();
+      }
+    } else if(action.propertyType === "attribute") {
+      hasMore(vals);
+      action.attributeName = vals.shift();
+      if(action.actionType !== "remove") {
+        hasMore(vals);
+        action.attributeValue = vals.shift();
+      }
+    } else if(action.propertyType === "value") {
+      if(action.actionType !== "reset") {
+        hasMore(vals);
+        action.value = vals.shift();
+      }
+    } else if(action.propertyType === "text") {
+      hasMore(vals);
+      action.text = vals.shift();
+    }
+    return action;
+  };
+
+  NoJS.prototype.processListener = function(trig, act) {
+    if(trig.timeout === null) {
+      if(trig.eventType === "immediately") {
+        // timeout 0 to happen after all other listeners are installed.
+        setTimeout(() => { this.apply(null, act); }, 0);
+      } else {
+        elt.addEventListener(trigger.eventType, evt => {
+          this.apply(evt, act);
+        });
+      }
+    } else if(trig.timeout.count < 0) {
+      if(trig.eventType === "immediately") {
+        setInterval(() => { this.apply(null, act); }, trig.timeout.time);
+      } else {
+        elt.addEventListener(trigger.eventType, evt => {
+          setInterval(() => { this.apply(evt, act); }, nums);
+        });
+      }
+    } else if(trig.timeout.count > 0) {
+      let countDown = trig.timeout.count;
+      let countDownTimer = () => {
+        this.apply(null, act);
+        if(countDown > 0) {
+          countDown--;
+          setTimeout(countDownTimer, trig.timeout.time);
+        }
+      };
+      if(trig.eventType === "immediately") {
+        setTimeout(countDownTimer, trig.timeout.time);
+      } else {
+        elt.addEventListener(trig.eventType, () => {
+          setTimeout(countDownTimer, trig.timeout.time);
+        });
+      }
+    } // else if trig.timeout.count === 0 do nothing.
+  };
+
+  NoJS.prototype._processElement = function(elt) {
+    // returns a list of actions to be added to the element.
+    let ret = [];
+    Object.keys(elt.attributes).forEach(prop => {
+      let attr = elt.attributes[prop];
 
       // to enable support for single and double dashes.
       // note the order of condition checking is important.
+      let doubleDash = false;
       if (attr.name.indexOf('on--') === 0) {
-        var doubleDash = true;
+        doubleDash = true;
         console.warn('Deprecation warning: using double dashes "--" are deprecated. Use a single dash "-" instead.')
-      } else if (attr.name.indexOf('on-') === 0) {
-      var doubleDash = false;
-      } else {
+      } else if (attr.name.indexOf('on-') !== 0) {
+        // This is a regular HTML attribute, no action required.
         return;
       }
 
-      var signatureParts = attr.name.split(doubleDash ? '--' : '-');
-      var paramValues = this_._splitParams(attr.value);
+      let signatureParts = attr.name.split(doubleDash ? '--' : '-');
+      let paramValues = this_._splitParams(attr.value);
 
-      if(signatureParts.length < 4) {
-        console.warn("invalid signature: \"" + attr.name + "\"");
-        return;
-      }
-      var eventType = signatureParts[1];
-      var action = signatureParts[2];
-      var propertyOrEventType = signatureParts[3];
+      let trigger = this.processTrigger(signatureParts, paramValues);
+      let action = this.processAction(signatureParts, paramValues, elt);
 
-      var target;
-      if (signatureParts.length > 4 && signatureParts[signatureParts.length -1] === 'self') {
-        target = elt;
-        isSelf = true;
+      if(action.invalid || (trigger.timeout != null &&
+        (isNaN(trigger.timeout.time) || isNaN(trigger.timeout.count)))) {
+        console.warn("invalid no-js attribute \"" + attr.name + "\"=\""
+          + attr.value + "\"");
       } else {
-        isSelf = false;
-        target = paramValues[0];
+        this.processListener(trigger, action);
       }
-
-      var propertyName = propertyOrEventType;
-      var propertyValue;
-      if (action !== 'reset') {
-        var index = this_._getPropertyValueIndex(propertyOrEventType, isSelf);
-        // join space containing values that might have been split.
-        propertyValue = paramValues.slice(index).join(' ');
-        if (propertyOrEventType === 'attribute') {
-          propertyName = paramValues[index - 1];
-        }
-      }
-
-      var options = {
-        action: action,
-        target: target,
-        sourceElement: elt,
-        propertyOrEventType: propertyOrEventType,
-        propertyValue: propertyValue,
-        propertyName: propertyName
-      };
-
-      elt.addEventListener(eventType, function(e) {
-        this_._handler(options);
-      });
     });
   }
 
   NoJS.prototype.js = function (dom) {
     dom = dom || 'html';
-    var this_ = this;
-    document.querySelector(dom).querySelectorAll('[no-js]').forEach(function(el) {
-      this_._processRegular(el);
+    document.querySelector(dom).querySelectorAll('[no-js]').forEach(el => {
+      this.processRegular(el);
     });
-  }
-
-  NoJS.prototype._getPropertyValueIndex = function (propertyOrEventType, isSelf) {
-    // if props type is attribute, the signature takes the form
-    // on-[evtType]-[action]-attribute = "target propertyName propertyValue"
-    var index = propertyOrEventType === 'attribute' ? 2 : 1;
-    return isSelf ? index - 1 : index;
-  }
-
-  NoJS.prototype._handler = function (options) {
-    var targets = typeof options.target === "string" ? document.querySelectorAll(options.target) : [options.target];
-    targets.forEach(function(el) {
-      if (options.action === 'trigger' && typeof el[options.propertyOrEventType] === 'function') {
-        el[options.propertyOrEventType]();
-        return;
-      }
-
-      if (options.propertyOrEventType === 'class') {
-        if (options.action === 'set') {
-          el.className = options.propertyValue;
-        } else if (options.action == 'switch') {
-          // @todo add and remove based on the class presence
-          // during time of action
-          el.classList.remove(options.propertyValue);
-          options.sourceElement.classList.add(options.propertyValue);
-        } else {
-          el.classList[options.action](options.propertyValue);
-        }
-      }
-
-      else if (options.propertyOrEventType === 'attribute' || options.propertyOrEventType === 'id') {
-        if (options.action === 'remove') {
-          el.removeAttribute(options.propertyName);
-        } else if (options.action === 'add' || options.action == 'set') {
-          el.setAttribute(options.propertyName, options.propertyValue);
-        }
-      }
-
-      else if (options.propertyOrEventType === 'dom' && options.action === 'remove') {
-        el.remove();
-      }
-
-      else if (options.propertyOrEventType === 'value') {
-        if (options.action === 'set') {
-          el.value = options.propertyValue;
-        } else if (options.action === 'reset') {
-          el.value = null;
-        }
-      }
-
-      else if (options.propertyOrEventType === 'text' && options.action === 'set') {
-        el.innerText = options.propertyValue;
-      }
-    })
-  }
+  };
 
   document.addEventListener('DOMContentLoaded', function() {
     window.no = new NoJS();
