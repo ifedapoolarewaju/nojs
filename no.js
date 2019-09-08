@@ -130,7 +130,7 @@
   NoJS.prototype.processAction = function(keys, vals, elt) {
     var action = {};
     action.actionType = keys.shift();
-    action.targetType = keys.shift();
+    action.targetType = keys.shift().toLowerCase();
     action.sourceElement = elt;
     action.isSelf = keys[keys.length - 1] === "self";
 
@@ -333,13 +333,14 @@
   }
 
   function addTrigger(type) {
-    no.targetTypes[type] = {};
-    no.targetTypes[type].process = function(action, values) {
+    var ltype = type.toLowerCase();
+    no.targetTypes[ltype] = {};
+    no.targetTypes[ltype].process = function(action, values) {
       if(action.actionType !== "trigger" || values.length > 0) {
         action.invalid = true;
       }
     }
-    no.targetTypes[type].apply = function(evnt, action, target) {
+    no.targetTypes[ltype].apply = function(evnt, action, target) {
       target[type]();
     }
   }
