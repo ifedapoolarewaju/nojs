@@ -23,14 +23,18 @@
   ],
   "author": "Ifedapo .A. Olarewaju",
   "license": "MIT",
+  "contributors": [
+    {
+      "name": "Kimberlee Model",
+      "url": "www.redbow.kim/blog/"
+    }
+  ],
   "bugs": {
     "url": "https://github.com/ifedapoolarewaju/nojs/issues"
   },
   "homepage": "https://github.com/ifedapoolarewaju/nojs#readme",
   "devDependencies": {
-    "uglify-js": "^2.7.5"
-  },
-  "dependencies": {
+    "uglify-js": "^2.7.5",
     "jasmine": "^3.4.0"
   }
 }

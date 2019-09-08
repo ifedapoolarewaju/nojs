@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <!-- <script type="text/javascript" src="no.js"></script> -->
+        <script type="text/javascript" src="https://raw.githubusercontent.com/ifedapoolarewaju/nojs/master/no.js"></script>
+
+        <style>
+.redbg,#target4 { background-color: red; }
+.greenborder { border: solid 1px green; }
+.greytext { color: #444; }
+        </style>
+    </head>
+    <body>
+        <h1>Attributes</h1>
+        (add and set are equivelant)
+        <button no-js on-click-add-attribute="#target1 style 'background-color: red'">
+            add attribute red
+        </button>
+        <button no-js on-click-set-attribute="#target1 style 'background-color: green'">
+            set attribute green
+        </button>
+        <button no-js on-click-remove-attribute="#target1 style">
+            remove attribute
+        </button>
+        <span id="target1">change my color</span>
+        <h1>Classes</h1>
+        <button no-js on-click-add-class="#target2 redbg">
+            add class red background
+        </button>
+        <button no-js on-click-set-class="#target2 greenborder">
+            set class green border
+        </button>
+        <button no-js on-click-remove-class="#target2 redbg">
+            remove class red background
+        </button>
+        <button no-js on-click-toggle-class="#target2 greytext">
+            toggle class grey text
+        </button>
+        <span id="target2">change my classes</span>
+        <h1>Select class</h1>
+        <ul id="target3">
+            <li no-js on-click-switch-class="#target3>li redbg">thing 1</li>
+            <li no-js on-click-switch-class="#target3>li redbg">thing 2</li>
+            <li no-js on-click-switch-class="#target3>li redbg">thing 3</li>
+            <li no-js on-click-switch-class="#target3>li redbg">thing 4</li>
+        </ul>
+        <h1>Id</h1>
+        <button no-js on-click-set-id=".target4 target4">
+            set id to change the color
+        </button>
+        <button no-js on-click-remove-id=".target4">
+            remove id to change the color
+        </button>
+        <span class="target4">change my color</span>
+        <h1>Remove an element</h1>
+        <button no-js on-click-remove-dom="#target5">
+            remove dom
+        </button>
+        <span id="target5">Remove me</span>
+        <h1>Set Text</h1>
+        <button no-js on-click-set-text="#target6 'happy (-:'">
+            set text happy
+        </button>
+        <button no-js on-click-set-text="#target6 'sad )-:'">
+            set text sad
+        </button>
+        <span id="target6">Set my text</span>
+        <h1>Value</h1>
+        <button no-js on-click-set-value="#target7 'happy (-:'">
+            set value happy
+        </button>
+        <button no-js on-click-set-value="#target7 'sad )-:'">
+            set value sad
+        </button>
+        <button no-js on-click-reset-value="#target7">
+            reset value
+        </button>
+        <input type="text" id="target7" value="change my value" />
+        <h1>triggers</h1>
+        <button no-js on-click-trigger-click="#target8">
+            click the checkbox
+        </button>
+        <input id="target8" type="checkbox" />
+        <label for="target8">click me</label>
+        <br />
+        <button no-js on-click-trigger-focus="#target9">
+            focus the text
+        </button>
+        <button no-js on-click-trigger-blur="#target9">
+            blur the text
+        </button>
+        <input type="text" value="focus and blur me" id="target9" />
+        <input type="text" value="cant touch dis" 
+            no-js on-click-trigger-blur-self="" />
+        <button no-js on-click-trigger-scrollIntoView="#target1">
+            scroll to the first target
+        </button>
+    </body>
+</html>

@@ -9,8 +9,7 @@
 *
 * Supported propertyTypes:
 *   attribute:
-*     on-[eventType]-add-attribute="[target] [attributeName] [attributeValue]"
-*     on-[eventType]-set-attribute="[target] [attributeName] [attributeValue]"
+*     on-[eventType]-add||set-attribute="[target] [attributeName] [attributeValue]"
 *     on-[eventType]-remove-attribute="[target] [attributeName]"
 *   class:
 *     on-[eventType]-add-class="[target] [className]"
@@ -19,8 +18,7 @@
 *     on-[eventType]-toggle-class="[target] [className]"
 *     on-[eventType]-switch-class="[target] [className]"
 *   id:
-*     on-[eventType]-add-id="[target] [idValue]"
-*     on-[eventType]-set-id="[target] [idValue]"
+*     on-[eventType]-add||set-id="[target] [idValue]"
 *     on-[eventType]-remove-id="[target]"
 *   dom:
 *     on-[eventType]-remove-dom="[target]"
@@ -40,38 +38,47 @@
 
 (function() {
   function NoJS (dom) {
-    this.js(dom);
+    this.targetTypes = {};
   }
 
   /**
    * Can handle spaces, single quotation,  and escaped "\', \\, \ " chars.
    */
   NoJS.prototype.splitParams = function(param) {
-    let ret = [];
-    let str = "";
-    let inQuote = false;
-    let prevSpace = false;
-    let prevQuote = false;
-    let prevEsc = false;
-    let first = true;
-    for(let i = 0; i < param.length; i++) {
-      let chr = param.charAt(i);
-      if((first || prevSpace || !inQuote) && !prevEsc && chr === '\'') {
+    var ret = [];
+    var str = "";
+    var inQuote = false;
+    var prevSpace = false;
+    var prevQuote = false;
+    var prevEsc = false;
+    var first = true;
+    for(var i = 0; i < param.length; i++) {
+      var chr = param.charAt(i);
+      if(prevEsc) {
+        if('\'' === chr || '\\' === chr || /\s/.exec(chr)) {
+          str += chr;
+        } else {
+          return "invalid";
+        }
+        prevEsc = false;
+        first = false;
+        prevSpace = false;
+        prevQuote = false;
+      } else if((first || prevSpace || !inQuote) && chr === '\'') {
         if(!first && !prevSpace) {
-          console.warn("possibly malformed parameter string: \"" + param + "\"");
+          return "invalid";
         }
         // start recording a quoted string.
         inQuote = true;
         first = false;
         prevSpace = false;
-        prevQuote = false;
-      } else if(inQuote && !prevEsc && chr === '\'') {
+      } else if(inQuote && chr === '\'') {
         // end recording a quoted string
         inQuote = false;
         prevQuote = true;
         ret.push(str);
         str = "";
-      } else if(!inQuote && !prevEsc && /\s/.exec(chr)) {
+      } else if(!inQuote && /\s/.exec(chr)) {
         // matched a space between params.
         if(!first && !prevSpace && !prevQuote) {
           ret.push(str);
@@ -79,22 +86,13 @@
         } // else multiple spaces in a row or leading space.
         prevSpace = true;
         prevQuote = false;
-      } else if(!prevEsc && '\\' === chr) {
+      } else if('\\' === chr) {
         prevEsc = true;
         first = false;
         prevSpace = false;
         prevQuote = false;
-      }else if(prevEsc) {
-        if('\'' === chr || '\\' === chr || /\s/.exec(chr)) {
-          str += chr;
-        } else {
-          console.warn("possibly malformed parameter string: \"" + param + "\"");
-        }
-        prevEsc = false;
-        first = false;
-        prevSpace = false;
-        prevQuote = false;
       } else {
+        if(prevQuote) { return "invalid"; }
         first = false;
         prevSpace = false;
         prevQuote = false;
@@ -103,7 +101,7 @@
     }
 
     if(inQuote) {
-      console.warn("possibly malformed parameter string: \"" + param + "\"");
+      return "invalid";
     }
 
     if(!prevQuote && !prevSpace && !first) {
@@ -114,122 +112,91 @@
   };
 
   NoJS.prototype.processTrigger = function(keys, vals) {
-    let trigger = {};
+    var trigger = {};
     trigger.eventType = keys.shift();
+    trigger.invalid = false;
     if(keys[0] === "timeout") {
       keys.shift();
       trigger.timeout = {};
       trigger.timeout.time = parseInt(vals.shift());
       trigger.timeout.count = parseInt(vals.shift());
+      if(isNaN(trigger.timeout.time) || isNaN(trigger.timeout.count)) {
+        trigger.invalid = true;
+      }
     } else { trigger.timeout = null; }
     return trigger;
   };
 
   NoJS.prototype.processAction = function(keys, vals, elt) {
-    let action = {};
-    action.invalid = false;
+    var action = {};
     action.actionType = keys.shift();
-    let property = keys.shift();
-    if((action.actionType === "add" && (property === "class"
-        || property === "attribute" || property === "id"))
-      || (action.actionType === "set" && (property === "attribute"
-        || property === "class" || property === "id"
-        || property === "value" || property === "text"))
-      || (action.actionType === "remove" && ( property === "attribute"
-        || property === "class" || property === "id"
-        || property === "dom"))
-      || (action.actionType === "reset" && property === "value")
-      || ((action.actionType === "toggle" || action.actionType === "switch")
-        && property === "class"))
-    {
-      action.propertyType = property;
-    } else { action.propertyType = property; action.invalid = true; }
-
+    action.targetType = keys.shift();
+    action.sourceElement = elt;
     action.isSelf = keys[keys.length - 1] === "self";
 
-    if(action.isSelf) {
-      action.target = elt;
+    if(action.isSelf) { action.target = elt; }
+    else { action.target = vals.shift(); }
+
+    action.invalid = false;
+
+    var targetType = this.targetTypes[action.targetType];
+    if(action.actionType == null || action.targetType == null
+      || targetType == null || action.target == null) {
+      action.invalid = true;
     } else {
-      action.target = vals.shift();
+      targetType.process(action, vals);
     }
 
-    hasMore = lst => { if(!lst.length > 0) { action.invalid = true; } };
-
-    if(action.propertyType === "class") {
-      hasMore(vals);
-      action.className = vals.shift();
-    } else if(action.propertyType === "id") {
-      action.propertyType = "attribute";
-      action.attributeName = "id";
-      if(action.actionType !== "remove") {
-        hasMore(vals);
-        action.attributeValue = vals.shift();
-      }
-    } else if(action.propertyType === "attribute") {
-      hasMore(vals);
-      action.attributeName = vals.shift();
-      if(action.actionType !== "remove") {
-        hasMore(vals);
-        action.attributeValue = vals.shift();
-      }
-    } else if(action.propertyType === "value") {
-      if(action.actionType !== "reset") {
-        hasMore(vals);
-        action.value = vals.shift();
-      }
-    } else if(action.propertyType === "text") {
-      hasMore(vals);
-      action.text = vals.shift();
-    }
     return action;
   };
 
-  NoJS.prototype.processListener = function(trig, act) {
-    if(trig.timeout === null) {
-      if(trig.eventType === "immediately") {
-        // timeout 0 to happen after all other listeners are installed.
-        setTimeout(() => { this.apply(null, act); }, 0);
-      } else {
-        elt.addEventListener(trigger.eventType, evt => {
-          this.apply(evt, act);
-        });
-      }
-    } else if(trig.timeout.count < 0) {
-      if(trig.eventType === "immediately") {
-        setInterval(() => { this.apply(null, act); }, trig.timeout.time);
-      } else {
-        elt.addEventListener(trigger.eventType, evt => {
-          setInterval(() => { this.apply(evt, act); }, nums);
-        });
-      }
-    } else if(trig.timeout.count > 0) {
-      let countDown = trig.timeout.count;
-      let countDownTimer = () => {
-        this.apply(null, act);
-        if(countDown > 0) {
-          countDown--;
-          setTimeout(countDownTimer, trig.timeout.time);
+  NoJS.prototype.processListener = function(trig, act, elt) {
+    var targetType = this.targetTypes[act.targetType];
+    if(targetType != null) {
+      var apply = function(evt) {
+        if(act.isSelf) { targetType.apply(evt, act, act.target); }
+        else {
+          var tgts = document.querySelectorAll(act.target);
+          tgts.forEach(function (target) {
+            targetType.apply(evt, act, target);
+          });
         }
       };
-      if(trig.eventType === "immediately") {
-        setTimeout(countDownTimer, trig.timeout.time);
+      var listener = null;
+
+      if(trig.timeout == null) { listener = apply; }
+      else if(trig.timeout.count > 0) {
+        var countDown = trig.timeout.count;
+        listener = function(evnt) {
+          if(countDown-- > 0) {
+            apply(evnt);
+            setTimeout(listener, trig.timeout.time);
+          }
+        };
       } else {
-        elt.addEventListener(trig.eventType, () => {
-          setTimeout(countDownTimer, trig.timeout.time);
-        });
+        listener = function(evnt) {
+          setInterval(function() { apply(evnt); }, trig.timeout.time);
+        }
       }
-    } // else if trig.timeout.count === 0 do nothing.
+
+      if(trig.eventType === "immediately") {
+        // apply it after all the listeners are installed.
+        setTimeout(function() { apply(null) }, 0);
+      } else {
+        elt.addEventListener(trig.eventType, listener);
+      }
+    }
   };
 
-  NoJS.prototype._processElement = function(elt) {
+  NoJS.prototype.processElement = function(elt) {
     // returns a list of actions to be added to the element.
-    let ret = [];
-    Object.keys(elt.attributes).forEach(prop => {
-      let attr = elt.attributes[prop];
+    var this_ = this;
+    Object.keys(elt.attributes).forEach(function(prop) {
+      var attr = elt.attributes[prop];
 
       // to enable support for single and double dashes.
       // note the order of condition checking is important.
-      let doubleDash = false;
+      var doubleDash = false;
       if (attr.name.indexOf('on--') === 0) {
         doubleDash = true;
         console.warn('Deprecation warning: using double dashes "--" are deprecated. Use a single dash "-" instead.')
@@ -238,30 +205,151 @@
         return;
       }
 
-      let signatureParts = attr.name.split(doubleDash ? '--' : '-');
-      let paramValues = this_._splitParams(attr.value);
+      var signatureParts = attr.name.split(doubleDash ? '--' : '-');
+      signatureParts.shift();
+      var paramValues = this_.splitParams(attr.value);
 
-      let trigger = this.processTrigger(signatureParts, paramValues);
-      let action = this.processAction(signatureParts, paramValues, elt);
+      if(paramValues === "invalid") {
+        console.warn("invalid no-js parameter " + attr.name + "=\""
+          + attr.value + "\"");
+      }
 
-      if(action.invalid || (trigger.timeout != null &&
-        (isNaN(trigger.timeout.time) || isNaN(trigger.timeout.count)))) {
-        console.warn("invalid no-js attribute \"" + attr.name + "\"=\""
+      var trigger = this_.processTrigger(signatureParts, paramValues);
+      var action = this_.processAction(signatureParts, paramValues, elt);
+
+      if(action.invalid || trigger.invalid) {
+        console.warn("invalid no-js attribute " + attr.name + "=\""
           + attr.value + "\"");
       } else {
-        this.processListener(trigger, action);
+        this_.processListener(trigger, action, elt);
       }
-    });
-  }
-
-  NoJS.prototype.js = function (dom) {
-    dom = dom || 'html';
-    document.querySelector(dom).querySelectorAll('[no-js]').forEach(el => {
-      this.processRegular(el);
     });
   };
 
+  NoJS.prototype.js = function (dom) {
+    var this_ = this;
+    dom = dom || 'html';
+    document.querySelector(dom).querySelectorAll('[no-js]')
+      .forEach(function(el) {
+      this_.processElement(el);
+    });
+  };
+
+  window.no = new NoJS();
+
+  no.targetTypes.attribute = {};
+  no.targetTypes.attribute.process = function(action, values) {
+    if(action.actionType === "add" || action.actionType === "set") {
+      if(values.length >= 2) {
+        action.attributeName = values.shift();
+        action.attributeValue = values.join(" ");
+      } else { action.invalid = true; }
+    } else if(action.actionType === "remove") {
+      if(values.length === 1) {
+        action.attributeName = values.shift();
+      } else { action.invalid = true; }
+    } else { action.invalid = true; }
+  };
+  no.targetTypes.attribute.apply = function(evnt, action, target) {
+    if(action.actionType === "remove") {
+      target.removeAttribute(action.attributeName);
+    } else {
+      target.setAttribute(action.attributeName, action.attributeValue);
+    }
+  }
+
+  no.targetTypes["class"] = {};
+  no.targetTypes["class"].process = function(action, values) {
+    if(action.actionType === "add" || action.actionType === "set"
+      || action.actionType === "remove" || action.actionType === "toggle"
+      || action.actionType === "switch") {
+      action.classNames = values;
+    } else { action.invalid = true; }
+  }
+  no.targetTypes["class"].apply = function(evnt, action, target) {
+    if(action.actionType === "set") {
+      target.className = action.classNames.join(" ");
+    } else if(action.actionType === "switch") {
+      // @todo add and remove based on the class presence
+      // during time of action
+      action.classNames.forEach(function(name) {
+        target.classList.remove(name);
+        action.sourceElement.classList.add(name);
+      });
+    } else {
+      action.classNames.forEach(function(name) {
+        target.classList[action.actionType](name);
+      });
+    }
+  }
+
+  no.targetTypes.id = {};
+  no.targetTypes.id.process = function(action, values) {
+    action.targetType = "attribute";
+    values.unshift("id");
+    no.targetTypes.attribute.process(action, values);
+  }
+
+  no.targetTypes.dom = {};
+  no.targetTypes.dom.process = function(action, values) {
+    if(action.actionType !== "remove" && values.length != 0) {
+      action.invalid;
+    }
+  }
+  no.targetTypes.dom.apply = function(evnt, action, target) {
+    if(action.actionType === "remove") {
+      target.remove();
+    }
+  }
+
+  no.targetTypes.value = {};
+  no.targetTypes.value.process = function(action, values) {
+    if(action.actionType === "set") {
+      action.value = values.join(" ");
+    } else if(action.actionType !== "reset" || values.length !== 0) {
+      action.invalid = true;
+    }
+  }
+  no.targetTypes.value.apply = function(evnt, action, target) {
+    if(action.actionType === "set") {
+      target.value = action.value;
+    } else if(action.actionType === "reset") {
+      target.value = null;
+    }
+  }
+
+  no.targetTypes.text = {};
+  no.targetTypes.text.process = function(action, values) {
+    if(action.actionType === "set") {
+      action.text = values.join(" ");
+    } else {
+      action.invalid = true;
+    }
+  }
+  no.targetTypes.text.apply = function(evnt, action, target) {
+    if(action.actionType === "set") {
+      target.innerText = action.text;
+    }
+  }
+
+  function addTrigger(type) {
+    no.targetTypes[type] = {};
+    no.targetTypes[type].process = function(action, values) {
+      if(action.actionType !== "trigger" || values.length > 0) {
+        action.invalid = true;
+      }
+    }
+    no.targetTypes[type].apply = function(evnt, action, target) {
+      target[type]();
+    }
+  }
+
+  addTrigger("click");
+  addTrigger("focus");
+  addTrigger("blur");
+  addTrigger("scrollIntoView");
+
   document.addEventListener('DOMContentLoaded', function() {
-    window.no = new NoJS();
+    no.js();
   });
-})()
+})();
