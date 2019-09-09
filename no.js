@@ -410,6 +410,8 @@
   no.targetTypes.text.process = function(action, values) {
     if(action.actionType === "set") {
       action.text = values.join(" ");
+    } else if(action.actionType === "copy") {
+      action.source = values.shift();
     } else {
       action.invalid = true;
     }
@@ -417,6 +419,26 @@
   no.targetTypes.text.apply = function(evnt, action, target) {
     if(action.actionType === "set") {
       target.innerText = action.text;
+    } else if(action.actionType === "copy") {
+      target.innerText = document.querySelector(action.source).innerText;
+    }
+  };
+
+  no.targetTypes.html = {};
+  no.targetTypes.html.process = function(action, values) {
+    if(action.actionType === "set") {
+      action.html = values.join(" ");
+    } else if(action.actionType === "copy") {
+      action.source = values.shift();
+    } else {
+      action.invalid = true;
+    }
+  };
+  no.targetTypes.html.apply = function(evnt, action, target) {
+    if(action.actionType === "set") {
+      target.innerHTML = action.html;
+    } else if(action.actionType === "copy") {
+      target.innerHTML = document.querySelector(action.source).innerHTML;
     }
   };
 
@@ -445,7 +467,7 @@
       action.target = action.sourceElement;
       action.isSelf = true;
       action.args = values;
-    }
+    } else { action.invalid = true; }
   };
   no.targetTypes.template.apply = function(evnt, action, target) {
     var template = no.templates[action.template];
@@ -465,6 +487,35 @@
       }
     }
   };
+
+  no.targetTypes.form = {};
+  no.targetTypes.form.process = function(action, values) {
+    action.form = action.target;
+    action.property = values.shift();
+    action.target = action.sourceElement;
+    action.isSelf = true;
+    if(action.actionType === "set") {
+      action.value = values.join(" ");
+    } else if(action.actionType !== "reset") {
+      action.invalid = true;
+    }
+  }
+  no.targetTypes.form.apply = function(evnt, action, target) {
+    var prop = document.forms[action.form][action.property];
+    if(action.actionType === "set") {
+      if(prop.type === "checkbox") {
+        if(action.value === "true" || action.value === "yes"
+          || action.value === "checked" || action.value === "on") {
+          prop.checked = true;
+        } else { prop.checked = false; }
+      } else {
+        prop.value = action.value;
+      }
+    } else {
+      if(prop.type === "checkbox") { prop.checked = false; }
+      else { prop.value = null; }
+    }
+  }
 
   document.addEventListener('DOMContentLoaded', function() {
     no.js();
