@@ -35,18 +35,23 @@
 *
 */
 (function() {
-  function NoJS (dom) {
-    this.js(dom);
+  function NoJS () {
+    var supportedEvents = ['add', 'remove', 'set', 'toggle', 'switch', 'reset', 'trigger'];
+    var noJsAttributeRegex = new RegExp('on-\\w+-(' + supportedEvents.join('|') + ')');
+    this.noJsAttributeRegex = noJsAttributeRegex;
+    this.js();
   }
 
-  NoJS.prototype.js = function (dom) {
-    dom = dom || 'html';
+  NoJS.prototype.js = function () {
     var this_ = this;
     var isSelf = false;
-    // document.querySelector(dom).querySelectorAll('[no-js]')
-    trickleDown(document.body);
-    document.querySelector(dom).querySelectorAll('[no-js]')
-    .forEach(function(el) {
+    var rootEl = document.querySelector('[no-js]');
+    
+    rootEl.querySelectorAll('*').forEach(function(el) {
+      if(!this_.needsHydration(el)) {
+        return;
+      }
+
       Object.keys(el.attributes).forEach(function(prop) {
         var attr = el.attributes[prop];
 
@@ -155,19 +160,15 @@
     return isSelf ? index - 1 : index;
   }
 
+  NoJS.prototype.needsHydration = function (el) {
+    var this_ = this;
+    var attributes = el.getAttributeNames();
+    return !!attributes.find(function(a) {
+      return this_.noJsAttributeRegex.test(a);
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     window.no = new NoJS();
   })
 })()
-
-/**
- * Allows application of the no-js attribute to any desired parent element which will then trickle the no-js functionality to all applicable children elements.
- * @param {HTMLElement} rootEl
- */
-function trickleDown(rootEl) {
-  var descendants = rootEl.querySelectorAll('*');
-  descendants.forEach(function(el) {
-    var attributes = el.getAttributeNames();
-    attributes.find(function(a) { return /on-\w+-(add|remove|set|toggle|switch|reset|trigger)/g.test(a); }) && el.setAttribute('no-js', ''); 
-  });
-}
