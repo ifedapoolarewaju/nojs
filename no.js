@@ -36,6 +36,9 @@
 */
 (function() {
   function NoJS (dom) {
+    var supportedEvents = ['add', 'remove', 'set', 'toggle', 'switch', 'reset', 'trigger'];
+    var noJsEventAttributeRegex = new RegExp('on-\\w+-(' + supportedEvents.join('|') + ')');
+    this.noJsEventAttributeRegex = noJsEventAttributeRegex;
     this.js(dom);
   }
 
@@ -43,7 +46,14 @@
     dom = dom || 'html';
     var this_ = this;
     var isSelf = false;
-    document.querySelector(dom).querySelectorAll('[no-js]').forEach(function(el) {
+    var trickleFromEl = document.querySelector('[no-js][no-js-trickle]');
+    var elements = trickleFromEl ? trickleFromEl.querySelectorAll('*') : document.querySelector(dom).querySelectorAll('[no-js]');
+    
+    elements.forEach(function(el) {
+      if(!this_.needsHydration(el)) {
+        return;
+      }
+
       Object.keys(el.attributes).forEach(function(prop) {
         var attr = el.attributes[prop];
 
@@ -150,6 +160,18 @@
     // on-[evtType]-[action]-attribute = "target propertyName propertyValue"
     var index = propertyOrEventType === 'attribute' ? 2 : 1;
     return isSelf ? index - 1 : index;
+  }
+
+  /**
+   * Determines whether an element has valid no.js event attributes and thus needs to be hydrated
+   * @param {HTMLElement} el
+   */
+  NoJS.prototype.needsHydration = function (el) {
+    var this_ = this;
+    var attributes = el.getAttributeNames();
+    return !!attributes.find(function(a) {
+      return this_.noJsEventAttributeRegex.test(a);
+    });
   }
 
   document.addEventListener('DOMContentLoaded', function() {
