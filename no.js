@@ -43,7 +43,10 @@
     dom = dom || 'html';
     var this_ = this;
     var isSelf = false;
-    document.querySelector(dom).querySelectorAll('[no-js]').forEach(function(el) {
+    // document.querySelector(dom).querySelectorAll('[no-js]')
+    trickleDown(document.body);
+    document.querySelector(dom).querySelectorAll('[no-js]')
+    .forEach(function(el) {
       Object.keys(el.attributes).forEach(function(prop) {
         var attr = el.attributes[prop];
 
@@ -156,3 +159,15 @@
     window.no = new NoJS();
   })
 })()
+
+/**
+ * Allows application of the no-js attribute to any desired parent element which will then trickle the no-js functionality to all applicable children elements.
+ * @param {HTMLElement} rootEl
+ */
+function trickleDown(rootEl) {
+  var descendants = rootEl.querySelectorAll('*');
+  descendants.forEach(function(el) {
+    var attributes = el.getAttributeNames();
+    attributes.find(function(a) { return /on-\w+-(add|remove|set|toggle|switch|reset|trigger)/g.test(a); }) && el.setAttribute('no-js', ''); 
+  });
+}
