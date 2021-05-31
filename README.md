@@ -10,7 +10,7 @@ No.js is an extremely lightweight javascript library that makes you do DOM manip
 npm install nojs
 ```
 
-or download [here](https://github.com/ifedapoolarewaju/nojs/archive/v0.1.1.zip)
+or download [here](https://github.com/ifedapoolarewaju/nojs/archive/v0.1.3.zip)
 
 Then link it to the bottom of your web page like so:
 
@@ -26,13 +26,13 @@ or you can link directly to the remote distribution like so:
 ```html
 <body>
 ...
-<script src="http://nojs.io/release/0.1.1/no.min.js"></script>
+<script src="https://unpkg.com/nojs@0.1.3/dist/no.min.js"></script>
 </body>
 ```
 
 ### USAGE
 
-Please view the [Documentation](http://nojs.io)
+Please view the [Documentation](https://ifedapoolarewaju.github.io/nojs-site/)
 for elaborate examples and usage.
 
 ## License
